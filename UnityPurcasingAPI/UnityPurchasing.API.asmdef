@@ -1,0 +1,20 @@
+{
+    "name": "UnityPurchasing.API",
+    "references": [
+        "UnityEngine.Purchasing",
+        "UnityEngine.Purchasing.Stores",
+        "PluginSet.Core",
+        "UnityEngine.Purchasing.Security",
+        "UnityEngine.Purchasing.SecurityStub",
+        "UnityEngine.Purchasing.SecurityCore"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
