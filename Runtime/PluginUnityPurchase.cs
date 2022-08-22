@@ -11,7 +11,7 @@ using Logger = PluginSet.Core.Logger;
 namespace PluginSet.UnityPurchase
 {
     [PluginRegister]
-    public class PluginUnityPurchase : PluginBase, IStartPlugin, IPaymentPlugin
+    public class PluginUnityPurchase : PluginBase, IStartPlugin, IIAPurchasePlugin
     {
         public override string Name => "UnityPurchase";
 
@@ -254,6 +254,11 @@ namespace PluginSet.UnityPurchase
         public void CompleteMissingOrder(string transactionId)
         {
 
+        }
+
+        public void InitWithProducts(Dictionary<string, int> products)
+        {
+            throw new NotImplementedException();
         }
 
         public void PaymentComplete(string transactionId)
