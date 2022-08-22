@@ -22,6 +22,9 @@ namespace PluginSet.UnityPurchasingAPI
         private IStoreController m_Controller;
         private IExtensionProvider m_Extensions;
 
+        private byte[] _googlePublicKey;
+        private byte[] _appleRootCert;
+
         public List<Product> AllProducts
         {
             get
@@ -39,7 +42,7 @@ namespace PluginSet.UnityPurchasingAPI
             }
         }
         
-        public void Init()
+        public void Init(byte[] googlePublicKey, byte[] appleRootCert)
         {
             var module = StandardPurchasingModule.Instance();
             module.useFakeStoreUIMode = FakeStoreUIMode.StandardUser;
@@ -66,10 +69,12 @@ namespace PluginSet.UnityPurchasingAPI
                 
             UnityPurchasing.Initialize(this, builder);
 #endif
+            _googlePublicKey = googlePublicKey;
+            _appleRootCert = appleRootCert;
         }
         
 
-        public void InitWithProducts(Dictionary<string, object> products)
+        public void InitWithProducts(Dictionary<string, int> products)
         {
             var module = StandardPurchasingModule.Instance();
             var builder = ConfigurationBuilder.Instance(module);
@@ -109,25 +114,40 @@ namespace PluginSet.UnityPurchasingAPI
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs purchaseEvent)
         {
             var product = purchaseEvent.purchasedProduct;
+            CrossPlatformValidator validator = null;
 #if UNITY_ANDROID
-            var validator = new CrossPlatformValidator(GooglePlayTangle.Data(),AppleTangle.Data(), Application.identifier);
-            var result = validator.Validate(purchaseEvent.purchasedProduct.receipt);
-            foreach (IPurchaseReceipt productReceipt in result)
+            if (_googlePublicKey != null)
+                validator = new CrossPlatformValidator(_googlePublicKey, _appleRootCert, Application.identifier);
+//#elif UNITY_IOS
+//            if (_appleRootCert != null)
+//                validator = new CrossPlatformValidator(_googlePublicKey, _appleRootCert, Application.identifier);
+#endif
+            var invoked = false;
+            if (validator != null)
             {
-                GooglePlayReceipt google = productReceipt as GooglePlayReceipt;
-                if (null != google)
+                var result = validator.Validate(purchaseEvent.purchasedProduct.receipt);
+                foreach (IPurchaseReceipt productReceipt in result)
                 {
-                    var _result = new Product(product, m_Extensions);
-                    _result.SetReceipt(google.purchaseToken);
-                    PurchaseSuccess?.Invoke(_result);
-                    Debug.Log($"ProcessPurchase ========================== {product.definition.id}:{google.purchaseToken}");
-                    break;
+#if UNITY_ANDROID
+                    GooglePlayReceipt google = productReceipt as GooglePlayReceipt;
+                    string receipt = google?.purchaseToken;
+#else
+                    string receipt = null;
+#endif
+                    if (!string.IsNullOrEmpty(receipt))
+                    {
+                        var pro = new Product(product, m_Extensions);
+                        pro.SetReceipt(receipt);
+                        PurchaseSuccess?.Invoke(pro);
+                        invoked = true;
+                        break;
+                    }
                 }
             }
-#else
-            PurchaseSuccess?.Invoke(new Product(product, m_Extensions));
-            Debug.Log($"ProcessPurchase ========================== {product.definition.id}:{product.receipt}");
-#endif
+            
+            if (!invoked)
+                PurchaseSuccess?.Invoke(new Product(product, m_Extensions));
+            
             return PurchaseProcessingResult.Pending;
         }
 

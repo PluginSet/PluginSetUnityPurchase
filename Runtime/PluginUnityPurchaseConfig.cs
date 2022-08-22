@@ -8,5 +8,8 @@ namespace PluginSet.UnityPurchase
     [PluginSetConfig("UnityPurchase")]
     public class PluginUnityPurchaseConfig : ScriptableObject
     {
+        public string GooglePublicKey;
+        
+        public string AppleRootCert;
     }
 }

@@ -13,6 +13,21 @@ namespace PluginSet.UnityPurchase
     [PluginRegister]
     public class PluginUnityPurchase : PluginBase, IStartPlugin, IIAPurchasePlugin
     {
+        [Serializable]
+        private class PurchasingOrderInfo
+        {
+            [SerializeField]
+            public string productId;
+            [SerializeField]
+            public string transactionId;
+            [SerializeField]
+            public float price;
+            [SerializeField]
+            public string currency;
+            [SerializeField]
+            public string receipt;
+        }
+        
         public override string Name => "UnityPurchase";
 
         private static readonly Logger Logger = LoggerManager.GetLogger("UnityPurchase");
@@ -27,13 +42,31 @@ namespace PluginSet.UnityPurchase
         private Result? _paymentResult = null;
         private string _payingProductId = null;
         private readonly List<Result> _lostPaymenets = new List<Result>();
+        
+        private readonly Dictionary<string, string> transactionProducts = new Dictionary<string, string>();
+        
+        private readonly PurchasingOrderInfo tempOrderInfo = new PurchasingOrderInfo();
 
         private UnityPurchasingAPI.UnityPurchasingAPI Api;
 
         protected override void Init(PluginSetConfig config)
         {
-            AddEventListener(PluginConstants.IAP_PURCHASED_PRODUCT_PENDED, OnProductPend);
-            AddEventListener(PluginConstants.IAP_CHECK_LOST_PAYMENTS, OnCheckLostPayments);
+            var cfg = config.Get<PluginUnityPurchaseConfig>("UnityPurchase");
+            
+            
+            Api = new UnityPurchasingAPI.UnityPurchasingAPI();
+            Api.InitializeSuccess += OnInitialized;
+            Api.InitializeFailed += OnInitializeFailed;
+            Api.PurchaseFailed += OnPurchaseFailed;
+            Api.PurchaseSuccess += OnProcessPurchase;
+
+            byte[] gp = null;
+            byte[] ac = null;
+            if (!string.IsNullOrEmpty(cfg.GooglePublicKey))
+                gp = Convert.FromBase64String(cfg.GooglePublicKey);
+            if (!string.IsNullOrEmpty(cfg.AppleRootCert))
+                ac = Convert.FromBase64String(cfg.AppleRootCert);
+            Api.Init(gp, ac);
         }
 
         public IEnumerator StartPlugin()
@@ -41,23 +74,27 @@ namespace PluginSet.UnityPurchase
             IsRunning = true;
             IsEnablePayment = false;
             
-            Api = new UnityPurchasingAPI.UnityPurchasingAPI();
-            Api.InitializeSuccess += OnInitialized;
-            Api.InitializeFailed += OnInitializeFailed;
-            Api.PurchaseFailed += OnPurchaseFailed;
-            Api.PurchaseSuccess += OnProcessPurchase;
-            
-            Api.Init();
-            
-            AddEventListener(PluginConstants.IAP_INIT_WITH_PRODUCTS, InitWithProducts);
             yield break;
         }
 
         public void DisposePlugin(bool isAppQuit = false)
         {
-            RemoveEventListener(PluginConstants.IAP_INIT_WITH_PRODUCTS, InitWithProducts);
             IsRunning = false;
             IsEnablePayment = false;
+            transactionProducts.Clear();
+        }
+
+        public void InitWithProducts(Dictionary<string, int> products)
+        {
+            Api.InitWithProducts(products);
+        }
+
+        public void PaymentComplete(string transactionId)
+        {
+            if (transactionProducts.TryGetValue(transactionId, out var productId))
+                Api.PendProduct(productId);
+            else
+                Logger.Warn($"Cannot find product with transactionId:{transactionId}");
         }
         
         public void Pay(string productId, Action<Result> callback = null, string jsonData = null)
@@ -68,6 +105,7 @@ namespace PluginSet.UnityPurchase
                 {
                     Success = false,
                     PluginName = Name,
+                    Code = PluginConstants.FailDefaultCode,
                     Data = OnProductIdToJson(productId),
                     Error = "IAP not inited"
                 });
@@ -80,6 +118,7 @@ namespace PluginSet.UnityPurchase
                 {
                     Success = false,
                     PluginName = Name,
+                    Code = PluginConstants.FailDefaultCode,
                     Data = OnProductIdToJson(productId),
                     Error = "Is paying",
                 });
@@ -93,6 +132,7 @@ namespace PluginSet.UnityPurchase
                 {
                     Success = false,
                     PluginName = Name,
+                    Code = PluginConstants.FailDefaultCode,
                     Data = OnProductIdToJson(productId),
                     Error = "Invalid product"
                 });
@@ -106,25 +146,6 @@ namespace PluginSet.UnityPurchase
                 _payCallbacks.Add(callback);
         }
 
-        private void InitWithProducts(PluginsEventContext context)
-        {
-            Logger.Debug("PurchaseManager InitWithProducts ");
-            var dict = (Dictionary<string, object>) context.Data;
-            if (IsEnablePayment && (dict == null || dict.Count <= 0))
-            {
-                SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, Api.AllProducts);
-                return;
-            }
-            
-            InitWithProducts(dict);
-        }
-
-        private void InitWithProducts(Dictionary<string, object> products)
-        {
-            IsEnablePayment = false;
-            Api.InitWithProducts(products);
-        }
-
         private void OnInitialized()
         {
             Logger.Debug("PurchaseManager OnInitialized");
@@ -132,6 +153,7 @@ namespace PluginSet.UnityPurchase
             IsEnablePayment = true;
             
             SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, Api.AllProducts);
+            OnCheckLostPayments();
         }
 
         private void OnInitializeFailed(string error)
@@ -142,23 +164,21 @@ namespace PluginSet.UnityPurchase
         private void OnProcessPurchase(Product product)
         {
             var productId = product.ProductId;
+            tempOrderInfo.productId = productId;
+            tempOrderInfo.transactionId = product.TransactionId;
+            tempOrderInfo.price = product.Price;
+            tempOrderInfo.currency = product.Currency;
+            tempOrderInfo.receipt = product.Receipt;
 
-            Dictionary<string, object> _data = new Dictionary<string, object>();
-            _data.Add("productId", productId);
-            _data.Add("transactionId", product.TransactionId);
-            _data.Add("price", product.Price);
-            _data.Add("currency", product.Currency);
-            _data.Add("extra", product.Receipt);
-            string jsonStr = JsonConvert.SerializeObject(_data);
+            transactionProducts[product.TransactionId] = productId;
 
             var result = new Result
             {
                 Success = true,
                 PluginName = Name,
-                Data = jsonStr,
+                Code = PluginConstants.SuccessCode,
+                Data = JsonUtil.ToJson(tempOrderInfo),
             };
-
-            Debug.Log($"ProcessPurchase ========================== {result}:{product.Receipt}");
 
             if (productId.Equals(_payingProductId))
             {
@@ -192,6 +212,7 @@ namespace PluginSet.UnityPurchase
             {
                 Success = false,
                 PluginName = Name,
+                Code = PluginConstants.FailDefaultCode,
                 Data = OnProductIdToJson(productId),
                 Error = failureReason,
             };
@@ -200,18 +221,8 @@ namespace PluginSet.UnityPurchase
             {
                 callback.Invoke(result);
             }
+
             _payCallbacks.Clear();
-            
-            //SendNotification(PluginConstants.NOTIFY_PAY_FAIL, result);
-        }
-
-        private void OnProductPend(PluginsEventContext context)
-        {
-            var productId = (string) context.Data;
-            if (string.IsNullOrEmpty(productId))
-                return;
-
-            Api.PendProduct(productId);
         }
 
         private void Update()
@@ -232,9 +243,8 @@ namespace PluginSet.UnityPurchase
             {
                 callback.Invoke(result);
             }
+
             _payCallbacks.Clear();
-            
-            //SendNotification(PluginConstants.NOTIFY_PAY_SUCCESS, result);
         }
 
         private void OnCheckLostPayments()
@@ -246,25 +256,7 @@ namespace PluginSet.UnityPurchase
             _lostPaymenets.Clear();
         }
 
-        public void QueryMissingOrders(Action<Result> callback = null)
-        {
-
-        }
-
-        public void CompleteMissingOrder(string transactionId)
-        {
-
-        }
-
-        public void InitWithProducts(Dictionary<string, int> products)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void PaymentComplete(string transactionId)
-        {
-
-        }
+        
     }
 }
 #endif

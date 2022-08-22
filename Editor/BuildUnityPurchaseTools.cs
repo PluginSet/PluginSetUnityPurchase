@@ -1,4 +1,5 @@
-﻿using PluginSet.Core.Editor;
+﻿using PluginSet.Core;
+using PluginSet.Core.Editor;
 using UnityEngine;
 
 namespace PluginSet.UnityPurchase.Editor
@@ -13,6 +14,10 @@ namespace PluginSet.UnityPurchase.Editor
             if (!buildParams.Enable)
                 return;
             
+            if (!Global.CheckGitLibImported("com.unity.purchasing",
+                "com.unity.purchasing@2.1.1"))
+                throw new BuildException("Cannot import lib com.unity.purchasing");
+            
             context.Symbols.Add("ENABLE_UNITY_PURCHASE");
             
             if (buildParams.InitWithCatalog)
@@ -25,6 +30,10 @@ namespace PluginSet.UnityPurchase.Editor
             context.AddLinkAssembly("Stores", "UnityEngine.Purchasing.CloudCatalogImpl", "UnityEngine.Purchasing.Promo");
             context.AddLinkAssembly("mscorlib", "System.Security.Cryptography.*");
             
+            var pluginConfig = context.Get<PluginSetConfig>("pluginsConfig");
+            var config = pluginConfig.Get<PluginUnityPurchaseConfig>("UnityPurchase");
+            config.GooglePublicKey = buildParams.GooglePublicKey;
+            config.AppleRootCert = buildParams.AppleRootCert;
         }
         
     }

@@ -7,7 +7,9 @@ namespace PluginSet.UnityPurchasingAPI
     public class Product: IPaymentProduct
     {
         private UnityEngine.Purchasing.Product _product;
+#if UNITY_IOS
         private IExtensionProvider _extension;
+#endif
         
         internal UnityEngine.Purchasing.Product UnityProduct => _product;
 
@@ -24,19 +26,21 @@ namespace PluginSet.UnityPurchasingAPI
         public override string Description => _product.metadata.localizedDescription;
 
         /// <summary>
-        /// gpµÄtoken
         /// </summary>
-        private string gpReceipt;
+        private string customReceipt;
 
         public string Receipt
         {
             get
             {
+                if (!string.IsNullOrEmpty(customReceipt))
+                    return customReceipt;
+                
 #if UNITY_IOS
                 var appleExtensions = _extension.GetExtension<IAppleExtensions>();
                 return appleExtensions.GetTransactionReceiptForProduct(_product);
 #else
-                return gpReceipt;
+                return customReceipt;
 #endif
             }
         }
@@ -44,12 +48,14 @@ namespace PluginSet.UnityPurchasingAPI
         public Product(UnityEngine.Purchasing.Product product, IExtensionProvider extension)
         {
             _product = product;
+#if UNITY_IOS
             _extension = extension;
+#endif
         }
 
         public void SetReceipt(string receipt)
         {
-            gpReceipt = receipt;
+            customReceipt = receipt;
         }
     }
 }

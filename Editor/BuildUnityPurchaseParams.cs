@@ -13,5 +13,11 @@ namespace PluginSet.UnityPurchase.Editor
 
         [Tooltip("通过ProductCatalog初始化（自动初始化），未勾选时需要通过事件来触发初始化")]
         public bool InitWithCatalog;
+        
+        [Tooltip("Google支付公钥")]
+        public string GooglePublicKey;
+        
+        [Tooltip("苹果支付根证书")]
+        public string AppleRootCert;
     }
 }
