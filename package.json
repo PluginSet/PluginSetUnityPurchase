@@ -9,7 +9,6 @@
     "unitypurchase"
   ],
   "dependencies": {
-    "com.unity.purchasing": "2.1.1",
     "com.pluginset.core": "0.0.1"
   },
   "author": {

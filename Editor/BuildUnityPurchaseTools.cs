@@ -15,7 +15,7 @@ namespace PluginSet.UnityPurchase.Editor
                 return;
             
             if (!Global.CheckGitLibImported("com.unity.purchasing",
-                "com.unity.purchasing@2.1.1"))
+                "https://github.com/LyneXiao/UnityPurchasingInApp.git"))
                 throw new BuildException("Cannot import lib com.unity.purchasing");
             
             context.Symbols.Add("ENABLE_UNITY_PURCHASE");
