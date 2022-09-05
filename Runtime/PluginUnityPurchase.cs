@@ -48,6 +48,8 @@ namespace PluginSet.UnityPurchase
         private readonly PurchasingOrderInfo tempOrderInfo = new PurchasingOrderInfo();
 
         private UnityPurchasingAPI.UnityPurchasingAPI Api;
+        
+        private event Action<string> onTransactionCompleted = null;
 
         protected override void Init(PluginSetConfig config)
         {
@@ -92,11 +94,26 @@ namespace PluginSet.UnityPurchase
         public void PaymentComplete(string transactionId)
         {
             if (transactionProducts.TryGetValue(transactionId, out var productId))
+            {
                 Api.PendProduct(productId);
+                onTransactionCompleted?.Invoke(transactionId);
+            }
             else
+            {
                 Logger.Warn($"Cannot find product with transactionId:{transactionId}");
+            }
         }
-        
+
+        public void AddOnPaymentCompleted(Action<string> completed)
+        {
+            onTransactionCompleted += completed;
+        }
+
+        public void RemoveOnPaymentCompleted(Action<string> completed)
+        {
+            onTransactionCompleted -= completed;
+        }
+
         public void Pay(string productId, Action<Result> callback = null, string jsonData = null)
         {
             if (!IsRunning || !IsEnablePayment)
