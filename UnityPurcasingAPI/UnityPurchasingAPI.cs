@@ -1,5 +1,7 @@
 ﻿#if ENABLE_UNITY_PURCHASE
+using System;
 using System.Collections.Generic;
+using PluginSet.Core;
 using UnityEngine;
 using UnityEngine.Purchasing;
 using UnityEngine.Purchasing.Security;
@@ -8,6 +10,25 @@ namespace PluginSet.UnityPurchasingAPI
 {
     public class UnityPurchasingAPI : IStoreListener
     {
+        [Serializable]
+        private struct ProductSerialize
+        {
+            [SerializeField]
+            public bool availableToPurchase;
+            [SerializeField]
+            public string productId;
+            [SerializeField]
+            public float price;
+            [SerializeField]
+            public string currency;
+            [SerializeField]
+            public string priceString;
+            [SerializeField]
+            public string title;
+            [SerializeField]
+            public string description;
+        }
+        
         public delegate void OnInitializeFailedDelegate(string error);
         public delegate void OnInitializeSuccessDelegate();
 
@@ -24,6 +45,26 @@ namespace PluginSet.UnityPurchasingAPI
 
         private byte[] _googlePublicKey;
         private byte[] _appleRootCert;
+        
+        public string SerializeProducts(List<Product> allProducts)
+        {
+            List<ProductSerialize> list = new List<ProductSerialize>();
+            foreach (var product in allProducts)
+            {
+                list.Add(new ProductSerialize
+                {
+                    availableToPurchase = product.AvailableToPurchase,
+                    productId = product.ProductId,
+                    price = product.Price,
+                    priceString = product.PriceString,
+                    currency = product.Currency,
+                    title = product.Title,
+                    description = product.Description,
+                });
+            }
+
+            return JsonUtil.ToJson(list);
+        }
 
         public List<Product> AllProducts
         {

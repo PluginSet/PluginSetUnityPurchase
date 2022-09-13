@@ -168,14 +168,29 @@ namespace PluginSet.UnityPurchase
             Logger.Debug("PurchaseManager OnInitialized");
 
             IsEnablePayment = true;
+
+            var allProducts = Api.AllProducts;
             
-            SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, Api.AllProducts);
+            SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, new Result
+            {
+                PluginName = Name,
+                Success = true,
+                Code = PluginConstants.SuccessCode,
+                Data = Api.SerializeProducts(allProducts),
+                DataObject = allProducts,
+            });
             OnCheckLostPayments();
         }
 
         private void OnInitializeFailed(string error)
         {
-            SendNotification(PluginConstants.IAP_ON_INIT_FAILED, error);
+            SendNotification(PluginConstants.IAP_ON_INIT_FAILED, new Result
+            {
+                PluginName = Name,
+                Success = false,
+                Code = PluginConstants.FailDefaultCode,
+                Error = error,
+            });
         }
 
         private void OnProcessPurchase(Product product)
