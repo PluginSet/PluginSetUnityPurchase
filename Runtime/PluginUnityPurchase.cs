@@ -251,7 +251,14 @@ namespace PluginSet.UnityPurchase
             
             foreach (var callback in _payCallbacks)
             {
-                callback.Invoke(result);
+                try
+                {
+                    callback.Invoke(result);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Purchase fail callback error:{e.Message}:{e}");
+                }
             }
 
             _payCallbacks.Clear();
@@ -273,7 +280,14 @@ namespace PluginSet.UnityPurchase
             
             foreach (var callback in _payCallbacks)
             {
-                callback.Invoke(result);
+                try
+                {
+                    callback.Invoke(result);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Purchase success callback error:{e.Message}:{e}");
+                }
             }
 
             _payCallbacks.Clear();
