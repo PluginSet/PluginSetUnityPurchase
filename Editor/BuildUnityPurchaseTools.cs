@@ -1,5 +1,6 @@
 ﻿using PluginSet.Core;
 using PluginSet.Core.Editor;
+using UnityEditor;
 using UnityEngine;
 
 namespace PluginSet.UnityPurchase.Editor
@@ -10,6 +11,9 @@ namespace PluginSet.UnityPurchase.Editor
         [OnSyncEditorSetting]
         public static void OnSyncEditorSetting(BuildProcessorContext context)
         {
+            if (context.BuildTarget != BuildTarget.Android && context.BuildTarget != BuildTarget.iOS)
+                return;
+                
             var buildParams = context.BuildChannels.Get<BuildUnityPurchaseParams>("UnityPurchase");
             if (!buildParams.Enable)
                 return;
