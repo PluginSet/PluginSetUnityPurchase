@@ -14,7 +14,7 @@ namespace PluginSet.UnityPurchase.Editor
             if (context.BuildTarget != BuildTarget.Android && context.BuildTarget != BuildTarget.iOS)
                 return;
                 
-            var buildParams = context.BuildChannels.Get<BuildUnityPurchaseParams>("UnityPurchase");
+            var buildParams = context.BuildChannels.Get<BuildUnityPurchaseParams>();
             if (!buildParams.Enable)
                 return;
             
@@ -35,7 +35,7 @@ namespace PluginSet.UnityPurchase.Editor
             context.AddLinkAssembly("mscorlib", "System.Security.Cryptography.*");
             
             var pluginConfig = context.Get<PluginSetConfig>("pluginsConfig");
-            var config = pluginConfig.Get<PluginUnityPurchaseConfig>("UnityPurchase");
+            var config = pluginConfig.AddConfig<PluginUnityPurchaseConfig>("UnityPurchase");
             config.GooglePublicKey = buildParams.GooglePublicKey;
             config.AppleRootCert = buildParams.AppleRootCert;
         }

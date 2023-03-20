@@ -53,7 +53,7 @@ namespace PluginSet.UnityPurchase
 
         protected override void Init(PluginSetConfig config)
         {
-            var cfg = config.Get<PluginUnityPurchaseConfig>("UnityPurchase");
+            var cfg = config.Get<PluginUnityPurchaseConfig>();
             
             
             Api = new UnityPurchasingAPI.UnityPurchasingAPI();

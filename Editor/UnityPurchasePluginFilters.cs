@@ -11,7 +11,7 @@ namespace PluginSet.UnityPurchase.Editor
     {
         private static bool FilterPlugins(string s, BuildProcessorContext context)
         {
-            var buildParams = context.BuildChannels.Get<BuildUnityPurchaseParams>("UnityPurchase");
+            var buildParams = context.BuildChannels.Get<BuildUnityPurchaseParams>();
             if (!buildParams.Enable)
             {
                 Debug.Log("Filter lib file :::::::  " + s);
