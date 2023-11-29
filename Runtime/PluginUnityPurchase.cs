@@ -2,7 +2,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using PluginSet.Core;
 using PluginSet.UnityPurchasingAPI;
 using UnityEngine;
@@ -21,11 +20,15 @@ namespace PluginSet.UnityPurchase
             [SerializeField]
             public string transactionId;
             [SerializeField]
-            public float price;
+            public int price;
             [SerializeField]
             public string currency;
             [SerializeField]
+            public string payload;
+            [SerializeField]
             public string receipt;
+            [SerializeField]
+            public int type;
         }
         
         public override string Name => "UnityPurchase";
@@ -55,8 +58,7 @@ namespace PluginSet.UnityPurchase
         {
             var cfg = config.Get<PluginUnityPurchaseConfig>();
             
-            
-            Api = new UnityPurchasingAPI.UnityPurchasingAPI();
+            Api = UnityPurchasingAPI.UnityPurchasingAPI.Instance;
             Api.InitializeSuccess += OnInitialized;
             Api.InitializeFailed += OnInitializeFailed;
             Api.PurchaseFailed += OnPurchaseFailed;
@@ -112,6 +114,45 @@ namespace PluginSet.UnityPurchase
         public void RemoveOnPaymentCompleted(Action<string> completed)
         {
             onTransactionCompleted -= completed;
+        }
+
+        public void RestorePayments(Action<Result> callback = null, string json = null)
+        {
+            if (!IsRunning)
+            {
+                callback?.Invoke(new Result
+                {
+                    Success = false,
+                    PluginName = Name,
+                    Code = PluginConstants.FailDefaultCode,
+                    Error = "IAP not inited"
+                });
+            }
+            
+            Api.RestorePurchases(delegate(bool success, string error)
+            {
+                if (success)
+                {
+                    callback?.Invoke(new Result
+                    {
+                        Success = true,
+                        PluginName = Name,
+                        Code = PluginConstants.SuccessCode,
+                        Data = json
+                    });
+                }
+                else
+                {
+                    callback?.Invoke(new Result
+                    {
+                        Success = false,
+                        PluginName = Name,
+                        Code = PluginConstants.FailDefaultCode,
+                        Error = error,
+                        Data = json
+                    });
+                }
+            });
         }
 
         public void Pay(string productId, Action<Result> callback = null, string jsonData = null)
@@ -200,7 +241,9 @@ namespace PluginSet.UnityPurchase
             tempOrderInfo.transactionId = product.TransactionId;
             tempOrderInfo.price = product.Price;
             tempOrderInfo.currency = product.Currency;
+            tempOrderInfo.payload = product.Payload;
             tempOrderInfo.receipt = product.Receipt;
+            tempOrderInfo.type = (int)product.Type;
 
             transactionProducts[product.TransactionId] = productId;
 

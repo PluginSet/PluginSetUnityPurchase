@@ -1,6 +1,7 @@
 #if ENABLE_UNITY_PURCHASE
 using PluginSet.Core;
 using UnityEngine.Purchasing;
+using ProductType = PluginSet.Core.ProductType;
 
 namespace PluginSet.UnityPurchasingAPI
 {
@@ -15,21 +16,24 @@ namespace PluginSet.UnityPurchasingAPI
 
         public override bool AvailableToPurchase => _product.availableToPurchase;
         public override string ProductId => _product.definition.id;
+        
+        public override ProductType Type => (ProductType)((int)_product.definition.type);
         public string TransactionId => _product.transactionID;
 
-        public override float Price => (float)_product.metadata.localizedPrice * 100f;
+        public override int Price => (int)(_product.metadata.localizedPrice * 100);
 
         public override string Currency => _product.metadata.isoCurrencyCode;
 
         public override string PriceString => _product.metadata.localizedPriceString;
         public override string Title => _product.metadata.localizedTitle;
         public override string Description => _product.metadata.localizedDescription;
+        public override string Payload => _product.receipt;
 
         /// <summary>
         /// </summary>
         private string customReceipt;
 
-        public string Receipt
+        public override string Receipt
         {
             get
             {

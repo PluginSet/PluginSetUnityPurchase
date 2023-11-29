@@ -10,6 +10,17 @@ namespace PluginSet.UnityPurchasingAPI
 {
     public class UnityPurchasingAPI : IStoreListener
     {
+        private static UnityPurchasingAPI _instance;
+        public static UnityPurchasingAPI Instance
+        {
+            get
+            {
+                if (_instance == null)
+                    _instance = new UnityPurchasingAPI();
+                return _instance;
+            }
+        }
+        
         [Serializable]
         private struct ProductSerialize
         {
@@ -121,7 +132,7 @@ namespace PluginSet.UnityPurchasingAPI
             var builder = ConfigurationBuilder.Instance(module);
             foreach (var kv in products)
             {
-                builder.AddProduct(kv.Key, (ProductType) kv.Value);
+                builder.AddProduct(kv.Key, (UnityEngine.Purchasing.ProductType) kv.Value);
             }
             UnityPurchasing.Initialize(this, builder);
         }
@@ -147,9 +158,27 @@ namespace PluginSet.UnityPurchasingAPI
                 m_Controller.ConfirmPendingPurchase(product);
         }
         
+        public void RestorePurchases(Action<bool, string> callback)
+        {
+#if UNITY_IOS || UNITY_IPHONE
+            var apple = m_Extensions.GetExtension<IAppleExtensions>();
+            apple.RestoreTransactions(callback);
+#elif UNITY_ANDROID
+            var google = m_Extensions.GetExtension<IGooglePlayStoreExtensions>();
+            google.RestoreTransactions(callback);
+#else
+            callback?.Invoke(false, "Not support");
+#endif
+        }
+
         public void OnInitializeFailed(InitializationFailureReason error)
         {
             InitializeFailed?.Invoke(error.ToString());
+        }
+
+        public void OnInitializeFailed(InitializationFailureReason error, string message)
+        {
+            InitializeFailed?.Invoke($"{error}: {message}");
         }
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs purchaseEvent)
@@ -166,7 +195,8 @@ namespace PluginSet.UnityPurchasingAPI
             var invoked = false;
             if (validator != null)
             {
-                var result = validator.Validate(purchaseEvent.purchasedProduct.receipt);
+                var payload = purchaseEvent.purchasedProduct.receipt;
+                var result = validator.Validate(payload);
                 foreach (IPurchaseReceipt productReceipt in result)
                 {
 #if UNITY_ANDROID

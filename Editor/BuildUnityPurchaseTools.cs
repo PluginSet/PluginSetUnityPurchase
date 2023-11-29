@@ -17,10 +17,9 @@ namespace PluginSet.UnityPurchase.Editor
             var buildParams = context.BuildChannels.Get<BuildUnityPurchaseParams>();
             if (!buildParams.Enable)
                 return;
-            
-            if (!Global.CheckGitLibImported("com.unity.purchasing",
-                "https://github.com/LyneXiao/UnityPurchasingInApp.git"))
-                throw new BuildException("Cannot import lib com.unity.purchasing");
+
+            if (!Global.IncludePackage("com.unity.purchasing"))
+                throw new BuildException("Cannot find package com.unity.purchasing! Please import it first!");
             
             context.Symbols.Add("ENABLE_UNITY_PURCHASE");
             
