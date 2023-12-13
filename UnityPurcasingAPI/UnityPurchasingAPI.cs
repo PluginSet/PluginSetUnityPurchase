@@ -163,9 +163,24 @@ namespace PluginSet.UnityPurchasingAPI
 #if UNITY_IOS || UNITY_IPHONE
             var apple = m_Extensions.GetExtension<IAppleExtensions>();
             apple.RestoreTransactions(callback);
+#if RESTORE_CALLBACK_WITH_ERROR
+            apple.RestoreTransactions(callback);
+#else
+            apple.RestoreTransactions(delegate(bool b)
+            {
+                callback?.Invoke(b, "");
+            });
+#endif
 #elif UNITY_ANDROID
             var google = m_Extensions.GetExtension<IGooglePlayStoreExtensions>();
+#if RESTORE_CALLBACK_WITH_ERROR
             google.RestoreTransactions(callback);
+#else
+            google.RestoreTransactions(delegate(bool b)
+            {
+                callback?.Invoke(b, "");
+            });
+#endif
 #else
             callback?.Invoke(false, "Not support");
 #endif

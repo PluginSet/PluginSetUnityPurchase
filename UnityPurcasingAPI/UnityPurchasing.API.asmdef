@@ -1,5 +1,6 @@
 {
     "name": "UnityPurchasing.API",
+    "rootNamespace": "",
     "references": [
         "UnityEngine.Purchasing",
         "UnityEngine.Purchasing.Stores",
@@ -15,6 +16,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.purchasing",
+            "expression": "4.9.0",
+            "define": "RESTORE_CALLBACK_WITH_ERROR"
+        }
+    ],
     "noEngineReferences": false
 }
