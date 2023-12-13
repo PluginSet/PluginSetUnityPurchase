@@ -12,6 +12,10 @@ namespace PluginSet.UnityPurchase
     [PluginRegister]
     public class PluginUnityPurchase : PluginBase, IStartPlugin, IIAPurchasePlugin
     {
+        public const int ErrorCodeUnInit = 1001;
+        public const int ErrorCodePaying = 1002;
+        public const int ErrorCodeInvalidProduct = 1003;
+        
         [Serializable]
         private class PurchasingOrderInfo
         {
@@ -35,7 +39,7 @@ namespace PluginSet.UnityPurchase
 
         private static readonly Logger Logger = LoggerManager.GetLogger("UnityPurchase");
 
-        public int StartOrder => 0;
+        public int StartOrder => PluginsStartOrder.SdkDefault;
         
         public bool IsRunning { get; private set; }
         
@@ -75,6 +79,7 @@ namespace PluginSet.UnityPurchase
 
         public IEnumerator StartPlugin()
         {
+            Logger.Debug($"StartPlugin {Name}");
             IsRunning = true;
             IsEnablePayment = false;
             
@@ -83,6 +88,7 @@ namespace PluginSet.UnityPurchase
 
         public void DisposePlugin(bool isAppQuit = false)
         {
+            Logger.Debug($"DisposePlugin {Name}");
             IsRunning = false;
             IsEnablePayment = false;
             transactionProducts.Clear();
@@ -118,13 +124,13 @@ namespace PluginSet.UnityPurchase
 
         public void RestorePayments(Action<Result> callback = null, string json = null)
         {
-            if (!IsRunning)
+            if (!IsRunning || !IsEnablePayment)
             {
                 callback?.Invoke(new Result
                 {
                     Success = false,
                     PluginName = Name,
-                    Code = PluginConstants.FailDefaultCode,
+                    Code = ErrorCodeUnInit,
                     Error = "IAP not inited"
                 });
             }
@@ -163,9 +169,9 @@ namespace PluginSet.UnityPurchase
                 {
                     Success = false,
                     PluginName = Name,
-                    Code = PluginConstants.FailDefaultCode,
+                    Code = ErrorCodeUnInit,
                     Data = OnProductIdToJson(productId),
-                    Error = "IAP not inited"
+                    Error = $"IAP not inited, {(!IsRunning ? "not running" : "")} {(!IsEnablePayment ? "not enable payment" : "")}"
                 });
                 return;
             }
@@ -176,7 +182,7 @@ namespace PluginSet.UnityPurchase
                 {
                     Success = false,
                     PluginName = Name,
-                    Code = PluginConstants.FailDefaultCode,
+                    Code = ErrorCodePaying,
                     Data = OnProductIdToJson(productId),
                     Error = "Is paying",
                 });
@@ -190,7 +196,7 @@ namespace PluginSet.UnityPurchase
                 {
                     Success = false,
                     PluginName = Name,
-                    Code = PluginConstants.FailDefaultCode,
+                    Code = ErrorCodeInvalidProduct,
                     Data = OnProductIdToJson(productId),
                     Error = "Invalid product"
                 });

@@ -1,5 +1,6 @@
 #if ENABLE_UNITY_PURCHASE
 using PluginSet.Core;
+using UnityEngine;
 using UnityEngine.Purchasing;
 using ProductType = PluginSet.Core.ProductType;
 
@@ -31,20 +32,29 @@ namespace PluginSet.UnityPurchasingAPI
 
         /// <summary>
         /// </summary>
-        private string customReceipt;
+        private string _customReceipt;
 
         public override string Receipt
         {
             get
             {
-                if (!string.IsNullOrEmpty(customReceipt))
-                    return customReceipt;
-                
 #if UNITY_IOS
                 var appleExtensions = _extension.GetExtension<IAppleExtensions>();
                 return appleExtensions.GetTransactionReceiptForProduct(_product);
 #else
-                return customReceipt;
+                if (!string.IsNullOrEmpty(_customReceipt))
+                {
+                    return _customReceipt;
+                }
+                
+#if UNITY_ANDROID
+                var data = JsonUtil.FromJson<GooglePayloadData>(Payload);
+                var payload = JsonUtil.FromJson<GooglePayload>(data.Payload);
+                var json = JsonUtil.FromJson<GooglePayloadJson>(payload.json);
+                _customReceipt = json.purchaseToken;
+#endif
+                
+                return _customReceipt;
 #endif
             }
         }
@@ -59,7 +69,7 @@ namespace PluginSet.UnityPurchasingAPI
 
         public void SetReceipt(string receipt)
         {
-            customReceipt = receipt;
+            _customReceipt = receipt;
         }
     }
 }

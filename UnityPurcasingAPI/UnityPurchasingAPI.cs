@@ -195,7 +195,7 @@ namespace PluginSet.UnityPurchasingAPI
             var invoked = false;
             if (validator != null)
             {
-                var payload = purchaseEvent.purchasedProduct.receipt;
+                var payload = product.receipt;
                 var result = validator.Validate(payload);
                 foreach (IPurchaseReceipt productReceipt in result)
                 {
@@ -203,7 +203,7 @@ namespace PluginSet.UnityPurchasingAPI
                     GooglePlayReceipt google = productReceipt as GooglePlayReceipt;
                     string receipt = google?.purchaseToken;
 #else
-                    string receipt = null;
+                    string receipt = "Temp";
 #endif
                     if (!string.IsNullOrEmpty(receipt))
                     {
